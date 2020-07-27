@@ -1,2 +1,16 @@
 ---
+# Postgres install
+- name: Install RPMs
+  yum: name={{ item }} state=latest
+  with_items:
+    - sudo
+    - wget
+
+- name: Disable firewalld
+  service: name=firewalld state=stopped
+
+- name: Disable selinux
+  command: /sbin/setenforce 0
+  ignore_errors: yes
+---
 # tasks file for pg-efm-cluster
