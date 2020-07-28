@@ -88,6 +88,7 @@
    path: /usr/lib/systemd/system/edb-as-12.service
    regexp: "/var/lib/edb/as12/data"
    replace: "{{ db_path }}"
-
+- name: reload daemon
+  command: systemctl daemon-reload
 - name: Start edb 
   service: name=edb-as-12 state=started
