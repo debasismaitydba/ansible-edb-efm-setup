@@ -1,10 +1,14 @@
 ---
 # Postgres install
+- name: Removing dangling EDB yum
+  yum: name=edb-repo state=removed
+
 - name: Install RPMs
   yum: name={{ item }} state=latest
   with_items:
     - sudo
     - wget
+    - curl
 
 - name: Disable firewalld
   service: name=firewalld state=stopped
@@ -12,5 +16,78 @@
 - name: Disable selinux
   command: /sbin/setenforce 0
   ignore_errors: yes
----
 # tasks file for pg-efm-cluster
+- name: Install RPMs
+  yum: name={{ item }} state=latest
+  with_items:
+    - java
+- name: Install repo for edb
+  yum: name={{ item }} state=latest
+  with_items:
+   - "https://yum.enterprisedb.com/edb-repo-rpms/edb-repo-latest.noarch.rpm"
+- name: Update reposiroty username 
+  replace:
+   path: /etc/yum.repos.d/edb.repo
+   regexp: "<username>"
+   replace: "{{ repo_user }}" 
+- name: Update reposiroty  password
+  replace:
+   path: /etc/yum.repos.d/edb.repo
+   regexp: "<password>"
+   replace: "{{ repo_password }}"
+- name: Download repo key
+  command: curl -o /etc/pki/rpm-gpg/ENTERPRISEDB-GPG-KEY https://yum.enterprisedb.com/ENTERPRISEDB-GPG-KEY 
+- name: Install the key
+  command: rpm --import /etc/pki/rpm-gpg/ENTERPRISEDB-GPG-KEY 
+- name: Install epel release
+  yum: name={{ item }} state=latest
+  with_items:
+   - epel-release
+   - xinetd
+   - authd
+- name: restart multiple services in a loop
+  service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  become: true
+  loop:
+    - xinetd
+- name: Enable xinetd
+  command: systemctl enable xinetd
+- name : Download Tix package
+  command: curl -o /tmp/tix-8.4.3-12.el7.x86_64.rpm http://mirror.centos.org/centos/7/os/x86_64/Packages/tix-8.4.3-12.el7.x86_64.rpm
+- name: Install Tix package
+  yum: name={{ item }} state=latest
+  with_items:
+   - "/tmp/tix-8.4.3-12.el7.x86_64.rpm"
+- name: Install EDB packages
+  yum:
+   name: "{{ item }}"
+   state: latest
+  with_items: "{{ edb_packages }}"
+- name: Create data mount point 
+  file:
+    path: "{{ db_path }}"
+    state: directory
+- name: Recursively change ownership of a directory
+  file:
+    path: "{{ db_path }}"
+    state: directory
+    recurse: yes
+    owner: enterprisedb 
+    group: enterprisedb 
+
+- name: create database
+  command: /usr/edb/as12/bin/edb-as-12-setup initdb
+  environment:
+   PGSETUP_INITDB_OPTIONS: -E UTF-8 --pgdata={{ db_path }}
+  ignore_errors: yes
+- name: change directory in service
+  replace:
+   path: /usr/lib/systemd/system/edb-as-12.service
+   regexp: "/var/lib/edb/as12/data"
+   replace: "{{ db_path }}"
+
+- name: Start edb 
+  service: name=edb-as-12 state=started

@@ -1,2 +1,18 @@
 ---
 # defaults file for pg-efm-cluster
+repo_user: debasismaityeric
+repo_password: eGy52sbby3fxH5cv
+edb_packages: 
+ - edb-as12-server 
+ - edb-bart 
+ - edb-pgadmin4 
+ - edb-as12-edbplus 
+ - edb-efm39 
+ - edb-jdbc 
+ - edb-as12-server-edb-modules 
+ - edb-as12-pgagent 
+ - edb-pgbouncer19 
+ - edb-pgpool41 
+ - edb-as12-pgpool41-extensions 
+ - edb-as12-postgis  
+db_path: /edb/data
